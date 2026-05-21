@@ -7,6 +7,7 @@
     "dev": "bun --hot ./index.ts",
     "start": "bun ./index.ts",
     "migrate": "bun ./src/server/migrate.ts",
+    "seed": "bun ./src/server/seed.ts",
     "test": "bun test",
     "build": "bun build ./index.ts --target=bun --outdir=dist"
   },

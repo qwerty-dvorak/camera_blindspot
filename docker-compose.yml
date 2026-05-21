@@ -13,7 +13,7 @@ services:
         condition: service_healthy
 
   db:
-    image: postgis/postgis:17-3.5-alpine
+    image: postgis/postgis:16-3.5-alpine
     environment:
       POSTGRES_DB: cam_blindspot
       POSTGRES_USER: cam_blindspot
@@ -21,7 +21,7 @@ services:
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
-      - postgis-data:/var/lib/postgresql/data
+      - postgis16-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cam_blindspot -d cam_blindspot"]
       interval: 5s
@@ -29,4 +29,4 @@ services:
       retries: 20
 
 volumes:
-  postgis-data:
+  postgis16-data:

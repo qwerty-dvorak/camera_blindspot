@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "bun run migrate && bun run start"]
+CMD ["sh", "-c", "bun run seed && bun run start"]

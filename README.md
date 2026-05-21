@@ -20,7 +20,7 @@ The compose stack starts:
 
 - Bun app on port `3000`
 - PostGIS/PostgreSQL on port `5432`
-- A persistent `postgis-data` Docker volume
+- A persistent `postgis16-data` Docker volume
 
 ## Workflows
 
@@ -45,6 +45,7 @@ Bearings are degrees clockwise from true north.
 bun install
 bun run dev
 bun run migrate
+bun run seed
 bun test
 bun run build
 ```

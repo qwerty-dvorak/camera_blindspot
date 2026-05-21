@@ -61,7 +61,7 @@ function App() {
   async function loadRegions() {
     const data = await api<Region[]>("/api/regions");
     setRegions(data);
-    if (data[0]) setRegionId(data[0].id);
+    if (data[0]) applyRegionDefaults(data[0]);
   }
 
   async function loadScenarios(nextRegionId: number) {
@@ -77,8 +77,7 @@ function App() {
         body: JSON.stringify({ name: regionName, ...bounds }),
       });
       setRegions((current) => [region, ...current.filter((item) => item.id !== region.id)]);
-      setRegionId(region.id);
-      fitRegion(region);
+      applyRegionDefaults(region);
       setStatus("Region created");
     });
   }
@@ -196,6 +195,18 @@ function App() {
     );
   }
 
+  function applyRegionDefaults(region: Region) {
+    setRegionId(region.id);
+    setBounds({
+      north: region.north,
+      south: region.south,
+      east: region.east,
+      west: region.west,
+    });
+    setRegionName(region.name);
+    fitRegion(region);
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -214,7 +225,7 @@ function App() {
                 const value = Number(event.target.value);
                 setRegionId(value || null);
                 const region = regions.find((item) => item.id === value);
-                if (region) fitRegion(region);
+                if (region) applyRegionDefaults(region);
               }}
             >
               <option value="">None</option>
