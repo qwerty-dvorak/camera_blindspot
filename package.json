@@ -1,0 +1,27 @@
+{
+  "name": "cam_blindspot",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --hot ./index.ts",
+    "start": "bun ./index.ts",
+    "migrate": "bun ./src/server/migrate.ts",
+    "test": "bun test",
+    "build": "bun build ./index.ts --target=bun --outdir=dist"
+  },
+  "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "leaflet": "^1.9.4",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

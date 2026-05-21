@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://cam_blindspot:cam_blindspot@db:5432/cam_blindspot
+      PORT: "3000"
+      NODE_ENV: development
+      RUN_MIGRATIONS_ON_START: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    environment:
+      POSTGRES_DB: cam_blindspot
+      POSTGRES_USER: cam_blindspot
+      POSTGRES_PASSWORD: cam_blindspot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cam_blindspot -d cam_blindspot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgis-data:
