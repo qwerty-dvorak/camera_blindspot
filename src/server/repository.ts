@@ -5,7 +5,13 @@ type DbRegion = Region;
 type DbScenario = CameraScenario;
 
 export async function listRegions(): Promise<Region[]> {
-  return sql<DbRegion[]>`select id::int, name, north, south, east, west, created_at::text from regions order by created_at desc`;
+  return sql<DbRegion[]>`
+    select id::int, name, north, south, east, west, created_at::text
+    from regions
+    order by
+      case when name like 'Seeded %' then 0 else 1 end,
+      id asc
+  `;
 }
 
 export async function getRegion(id: number): Promise<Region> {

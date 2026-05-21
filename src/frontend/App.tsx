@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import type { AnalysisLayerResponse, CameraScenario, Region } from "../shared/types";
+import { mapLayerStyles, regionFeature } from "./mapLayers";
 
 type Workflow = "saved" | "csv" | "optimize";
 
@@ -148,23 +149,21 @@ function App() {
     if (!map || !layers) return;
     layers.clearLayers();
 
-    const regionLayer = L.geoJSON(regionFeature(result.region), {
-      style: { color: "#263238", weight: 2, fillOpacity: 0 },
-    }).addTo(layers);
+    const regionLayer = L.geoJSON(regionFeature(result.region), { style: mapLayerStyles.region }).addTo(layers);
     L.geoJSON(result.buildings, {
-      style: { color: "#5d4037", weight: 1, fillColor: "#8d6e63", fillOpacity: 0.45 },
+      style: mapLayerStyles.building,
     }).addTo(layers);
     L.geoJSON(result.coverage, {
-      style: { color: "#1976d2", weight: 1, fillColor: "#42a5f5", fillOpacity: 0.22 },
+      style: mapLayerStyles.coverage,
     }).addTo(layers);
     L.geoJSON(result.groundBlindspots, {
-      style: { color: "#d32f2f", weight: 0.5, fillColor: "#ef5350", fillOpacity: 0.35 },
+      style: mapLayerStyles.groundBlindspot,
     }).addTo(layers);
     L.geoJSON(result.wallBlindspots, {
-      style: { color: "#b71c1c", weight: 4, opacity: 0.9 },
+      style: mapLayerStyles.wallBlindspot,
     }).addTo(layers);
     L.geoJSON(result.wallNormals, {
-      style: { color: "#00897b", weight: 1, opacity: 0.65 },
+      style: mapLayerStyles.wallNormal,
     }).addTo(layers);
     L.geoJSON(result.cameras, {
       pointToLayer: (feature, latlng) =>
@@ -351,6 +350,15 @@ function App() {
             </dl>
           </section>
         )}
+
+        <section className="legend">
+          <h2>Map Layers</h2>
+          <div><span className="swatch building" />Buildings</div>
+          <div><span className="swatch coverage" />Camera FOV</div>
+          <div><span className="swatch wall-gap" />Wall blindspots</div>
+          <div><span className="swatch ground-gap" />Outdoor ground blindspots</div>
+          <div><span className="swatch normal" />Wall normals</div>
+        </section>
       </aside>
       <section id="map" aria-label="Blindspot map" />
     </main>
@@ -380,25 +388,6 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(errorPayload.error || "Request failed");
   }
   return payload as T;
-}
-
-function regionFeature(region: Region): GeoJSON.Feature {
-  return {
-    type: "Feature",
-    properties: { id: region.id, name: region.name },
-    geometry: {
-      type: "Polygon",
-      coordinates: [
-        [
-          [region.west, region.south],
-          [region.east, region.south],
-          [region.east, region.north],
-          [region.west, region.north],
-          [region.west, region.south],
-        ],
-      ],
-    },
-  };
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

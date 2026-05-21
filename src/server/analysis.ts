@@ -113,7 +113,7 @@ async function buildAnalysisLayers(input: AnalysisBuildInput) {
   };
 }
 
-function buildWallNormals(
+export function buildWallNormals(
   region: Region,
   buildings: Array<{ id: number; multiPolygon: MultiPolygon }>,
 ): GeoJSON.FeatureCollection {
@@ -142,7 +142,7 @@ function buildWallNormals(
   return featureCollection(features);
 }
 
-function buildWallBlindspots(
+export function buildWallBlindspots(
   region: Region,
   cameras: CameraInput[],
   buildings: Array<{ id: number; multiPolygon: MultiPolygon }>,
@@ -178,7 +178,7 @@ function buildWallBlindspots(
   return featureCollection(features);
 }
 
-function buildGroundBlindspots(region: Region, cameras: CameraInput[], buildings: MultiPolygon[]) {
+export function buildGroundBlindspots(region: Region, cameras: CameraInput[], buildings: MultiPolygon[]) {
   const projector = createProjector(region);
   const southwest = projector.toXY([region.west, region.south]);
   const northeast = projector.toXY([region.east, region.north]);
