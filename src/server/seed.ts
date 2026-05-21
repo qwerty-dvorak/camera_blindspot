@@ -71,10 +71,15 @@ async function upsertSeedRegion(seedRegion: SeedRegion): Promise<Region> {
     from regions
     where name = ${seedRegion.name}
     order by id
-    limit 1
   `;
 
   if (existing[0]) {
+    const canonical = existing[0];
+    for (const duplicate of existing.slice(1)) {
+      await sql`delete from regions where id = ${duplicate.id}`;
+      console.log(`removed duplicate seeded region ${duplicate.id}: ${duplicate.name}`);
+    }
+
     const rows = await sql<Region[]>`
       update regions
       set
@@ -83,7 +88,7 @@ async function upsertSeedRegion(seedRegion: SeedRegion): Promise<Region> {
         east = ${seedRegion.east},
         west = ${seedRegion.west},
         bbox = ST_MakeEnvelope(${seedRegion.west}, ${seedRegion.south}, ${seedRegion.east}, ${seedRegion.north}, 4326)
-      where id = ${existing[0].id}
+      where id = ${canonical.id}
       returning id::int, name, north, south, east, west, created_at::text
     `;
     return rows[0]!;

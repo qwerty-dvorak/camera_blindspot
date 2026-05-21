@@ -31,7 +31,10 @@ export async function fetchOsmBuildings(bounds: BoundsInput): Promise<ImportedBu
 
   const response = await fetch(process.env.OVERPASS_URL ?? "https://overpass-api.de/api/interpreter", {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      "user-agent": "camera-blindspot/0.1 (+https://github.com/qwerty-dvorak/camera_blindspot)",
+    },
     body: new URLSearchParams({ data: query }),
   });
 
