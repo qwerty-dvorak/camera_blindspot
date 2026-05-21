@@ -3,6 +3,22 @@ import { sql } from "./db";
 const migrationsDir = new URL("../../migrations/", import.meta.url);
 
 export async function migrate() {
+  const maxAttempts = Number(process.env.MIGRATION_ATTEMPTS ?? 30);
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await runMigrations();
+      return;
+    } catch (error) {
+      if (attempt === maxAttempts || !isTransientDatabaseStartupError(error)) {
+        throw error;
+      }
+      console.log(`database not ready for migrations, retrying (${attempt}/${maxAttempts})`);
+      await Bun.sleep(2000);
+    }
+  }
+}
+
+async function runMigrations() {
   await sql.unsafe(`
     create table if not exists schema_migrations (
       version text primary key,
@@ -26,6 +42,16 @@ export async function migrate() {
     });
     console.log(`applied migration ${file}`);
   }
+}
+
+function isTransientDatabaseStartupError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("connection closed") ||
+    message.includes("connection refused") ||
+    message.includes("database system is starting up") ||
+    message.includes("database system is shutting down")
+  );
 }
 
 if (import.meta.main) {

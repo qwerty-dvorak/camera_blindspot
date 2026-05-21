@@ -5,12 +5,12 @@ type DbRegion = Region;
 type DbScenario = CameraScenario;
 
 export async function listRegions(): Promise<Region[]> {
-  return sql<DbRegion[]>`select id, name, north, south, east, west, created_at::text from regions order by created_at desc`;
+  return sql<DbRegion[]>`select id::int, name, north, south, east, west, created_at::text from regions order by created_at desc`;
 }
 
 export async function getRegion(id: number): Promise<Region> {
   const rows = await sql<DbRegion[]>`
-    select id, name, north, south, east, west, created_at::text
+    select id::int, name, north, south, east, west, created_at::text
     from regions
     where id = ${id}
   `;
@@ -30,14 +30,14 @@ export async function createRegion(name: string, bounds: BoundsInput): Promise<R
       ${bounds.west},
       ST_MakeEnvelope(${bounds.west}, ${bounds.south}, ${bounds.east}, ${bounds.north}, 4326)
     )
-    returning id, name, north, south, east, west, created_at::text
+    returning id::int, name, north, south, east, west, created_at::text
   `;
   return rows[0]!;
 }
 
 export async function listScenarios(regionId: number): Promise<CameraScenario[]> {
   return sql<DbScenario[]>`
-    select cs.id, cs.region_id, cs.name, cs.source, cs.created_at::text, count(c.id)::int as camera_count
+    select cs.id::int, cs.region_id::int, cs.name, cs.source, cs.created_at::text, count(c.id)::int as camera_count
     from camera_sets cs
     left join cameras c on c.camera_set_id = cs.id
     where cs.region_id = ${regionId}
@@ -48,7 +48,7 @@ export async function listScenarios(regionId: number): Promise<CameraScenario[]>
 
 export async function getScenario(id: number): Promise<CameraScenario> {
   const rows = await sql<DbScenario[]>`
-    select id, region_id, name, source, created_at::text
+    select id::int, region_id::int, name, source, created_at::text
     from camera_sets
     where id = ${id}
   `;
@@ -67,7 +67,7 @@ export async function createScenario(
     const scenarios = await tx<DbScenario[]>`
       insert into camera_sets (region_id, name, source)
       values (${regionId}, ${name}, ${source})
-      returning id, region_id, name, source, created_at::text
+      returning id::int, region_id::int, name, source, created_at::text
     `;
     const scenario = scenarios[0]!;
 
@@ -93,7 +93,7 @@ export async function createScenario(
 
 export async function getCameras(scenarioId: number): Promise<Array<CameraInput & { id: number }>> {
   return sql<Array<CameraInput & { id: number }>>`
-    select id, camera, lat, long, orientation_deg, fov_deg, range_m
+    select id::int, camera, lat, long, orientation_deg, fov_deg, range_m
     from cameras
     where camera_set_id = ${scenarioId}
     order by id
@@ -105,7 +105,7 @@ export async function getCameraFeatureCollection(scenarioId: number): Promise<Ge
     select jsonb_build_object(
       'type', 'Feature',
       'properties', jsonb_build_object(
-        'id', id,
+        'id', id::int,
         'camera', camera,
         'orientation_deg', orientation_deg,
         'fov_deg', fov_deg,
@@ -122,9 +122,9 @@ export async function getCameraFeatureCollection(scenarioId: number): Promise<Ge
 
 export async function getBuildingFeatureRows(regionId: number): Promise<Array<{ id: number; feature: GeoJSON.Feature }>> {
   return sql<Array<{ id: number; feature: GeoJSON.Feature }>>`
-    select id, jsonb_build_object(
+    select id::int, jsonb_build_object(
       'type', 'Feature',
-      'properties', jsonb_build_object('id', id, 'tags', tags, 'source_osm_type', source_osm_type, 'source_osm_id', source_osm_id),
+      'properties', jsonb_build_object('id', id::int, 'tags', tags, 'source_osm_type', source_osm_type, 'source_osm_id', source_osm_id),
       'geometry', ST_AsGeoJSON(geom)::jsonb
     ) as feature
     from buildings
@@ -177,7 +177,7 @@ export async function createAnalysisRun(input: {
         ${JSON.stringify(input.coverage)}::jsonb,
         ${JSON.stringify(input.wallNormals)}::jsonb
       )
-      returning id, camera_set_id as scenario_id, created_at::text, ground_cell_size_m
+      returning id::int, camera_set_id::int as scenario_id, created_at::text, ground_cell_size_m
     `;
     const run = runs[0]!;
 
