@@ -10,6 +10,12 @@ docker compose up --build
 
 Open http://localhost:3000.
 
+If port `3000` is already in use:
+
+```bash
+APP_PORT=3001 docker compose up --build
+```
+
 The compose stack starts:
 
 - Bun app on port `3000`
