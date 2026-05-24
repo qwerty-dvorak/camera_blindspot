@@ -44,6 +44,7 @@ function App() {
     window.CESIUM_BASE_URL = "/cesium/";
     const viewer = new Cesium.Viewer(containerRef.current!, {
       sceneMode: Cesium.SceneMode.SCENE2D,
+      mapMode2D: Cesium.MapMode2D.ROTATE,
       animation: false,
       timeline: false,
       fullscreenButton: false,
