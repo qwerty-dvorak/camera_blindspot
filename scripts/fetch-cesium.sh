@@ -14,8 +14,14 @@ curl -L "$URL" -o "$ARCHIVE"
 rm -rf "$TMP_DIR" "$CESIUM_DIR"
 mkdir -p "$TMP_DIR"
 unzip -q "$ARCHIVE" -d "$TMP_DIR"
+CESIUM_BUILD_DIR="$(find "$TMP_DIR" -type d -path '*/Build/Cesium' -print -quit 2>/dev/null || true)"
+if [ -z "$CESIUM_BUILD_DIR" ]; then
+  echo "Could not find Build/Cesium directory in extracted archive" >&2
+  ls -la "$TMP_DIR"
+  exit 1
+fi
 mkdir -p "$CESIUM_DIR"
-cp -R "$TMP_DIR"/Cesium-${VERSION}/Build/Cesium/. "$CESIUM_DIR"/
+cp -R "$CESIUM_BUILD_DIR/." "$CESIUM_DIR"/
 rm -rf "$TMP_DIR" "$ARCHIVE"
 
 echo "Cesium ${VERSION} installed in ${CESIUM_DIR}"
