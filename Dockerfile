@@ -1,7 +1,6 @@
 FROM ubuntu:24.04
 
-ARG BUN_VERSION=1.3.6
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 ENV POSTGRES_DB=cam_blindspot
 ENV POSTGRES_USER=cam_blindspot
 ENV POSTGRES_PASSWORD=cam_blindspot
@@ -9,13 +8,14 @@ ENV POSTGRES_PASSWORD=cam_blindspot
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
-    nodejs \
-    npm \
+    curl \
+    unzip \
+    python3 \
+    python3-pip \
+    python3-venv \
     postgresql-16 \
     postgresql-16-postgis-3 \
     postgresql-16-postgis-3-scripts \
-  && npm install -g "bun@${BUN_VERSION}" \
-  && npm cache clean --force \
   && rm -rf /var/lib/apt/lists/*
 
 RUN pg_dropcluster 16 main --stop 2>/dev/null; \
@@ -24,10 +24,16 @@ RUN pg_dropcluster 16 main --stop 2>/dev/null; \
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY pyproject.toml uv.lock ./
+RUN python3 -m venv .venv && \
+    .venv/bin/pip install uv && \
+    .venv/bin/uv sync --frozen
 
 COPY . .
+
+RUN bash scripts/fetch-cesium.sh
+
+RUN .venv/bin/python manage.py collectstatic --noinput
 
 RUN cat > /usr/local/bin/docker-entrypoint.sh <<'SCRIPT'
 #!/bin/bash
@@ -89,7 +95,7 @@ SCRIPT
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-EXPOSE 3000
+EXPOSE 8000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["sh", "-c", "bun run seed && bun run start"]
+CMD ["/bin/bash", "-c", ".venv/bin/python manage.py migrate && .venv/bin/python manage.py seed && .venv/bin/python manage.py runserver 0.0.0.0:8000"]

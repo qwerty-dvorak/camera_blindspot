@@ -1,0 +1,97 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCTV Blindspot Mapper</title>
+    <link rel="stylesheet" href="{% static 'vendor/cesium/Widgets/widgets.css' %}" />
+    <link rel="stylesheet" href="{% static 'blindspot/styles.css' %}" />
+    <script>
+      window.CESIUM_BASE_URL = "{% static 'vendor/cesium/' %}";
+    </script>
+    <script src="{% static 'vendor/cesium/Cesium.js' %}"></script>
+    <script defer src="{% static 'blindspot/app.js' %}"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <header>
+          <h1>CCTV Blindspot Mapper</h1>
+          <p id="status">Ready</p>
+        </header>
+
+        <section>
+          <h2>Region</h2>
+          <label>
+            Saved region
+            <select id="regionSelect"><option value="">None</option></select>
+          </label>
+          <div class="grid-two">
+            <label>North<input id="north" type="number" step="any" /></label>
+            <label>South<input id="south" type="number" step="any" /></label>
+            <label>East<input id="east" type="number" step="any" /></label>
+            <label>West<input id="west" type="number" step="any" /></label>
+          </div>
+          <label>Name<input id="regionName" /></label>
+          <div class="button-row">
+            <button id="createRegion">Create</button>
+            <button id="importBuildings">Import OSM</button>
+          </div>
+        </section>
+
+        <section>
+          <h2>Camera Input</h2>
+          <div class="segmented">
+            <button data-workflow="saved" class="active">Saved</button>
+            <button data-workflow="csv">CSV</button>
+            <button data-workflow="optimize">Optimize</button>
+          </div>
+
+          <div id="savedWorkflow" class="workflow">
+            <label>
+              Scenario
+              <select id="scenarioSelect"><option value="">None</option></select>
+            </label>
+            <button id="analyzeSaved">Analyze</button>
+          </div>
+
+          <div id="csvWorkflow" class="workflow hidden">
+            <label>Scenario name<input id="csvName" /></label>
+            <textarea id="csvText"></textarea>
+            <button id="uploadCsv">Upload and Analyze</button>
+          </div>
+
+          <div id="optimizeWorkflow" class="workflow hidden">
+            <div class="grid-two">
+              <label>FOV deg<input id="fovDeg" type="number" step="any" /></label>
+              <label>Range m<input id="rangeM" type="number" step="any" /></label>
+            </div>
+            <label>Max cameras<input id="maxCameras" type="number" step="1" /></label>
+            <button id="optimizePlacement">Find Placements</button>
+          </div>
+        </section>
+
+        <section id="metrics" class="metrics hidden">
+          <h2>Result</h2>
+          <dl>
+            <div><dt>Cameras</dt><dd id="metricCameras">0</dd></div>
+            <div><dt>Buildings</dt><dd id="metricBuildings">0</dd></div>
+            <div><dt>Wall gaps</dt><dd id="metricWallGaps">0</dd></div>
+            <div><dt>Ground gaps</dt><dd id="metricGroundGaps">0</dd></div>
+          </dl>
+        </section>
+
+        <section class="legend">
+          <h2>Map Layers</h2>
+          <div><span class="swatch building"></span>Buildings</div>
+          <div><span class="swatch coverage"></span>Camera FOV</div>
+          <div><span class="swatch wall-gap"></span>Wall blindspots</div>
+          <div><span class="swatch ground-gap"></span>Outdoor ground blindspots</div>
+          <div><span class="swatch normal"></span>Wall normals</div>
+        </section>
+      </aside>
+      <section id="cesiumContainer" aria-label="Blindspot map"></section>
+    </main>
+  </body>
+</html>

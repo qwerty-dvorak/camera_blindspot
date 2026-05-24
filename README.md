@@ -2,7 +2,7 @@
 
 CCTV coverage and blindspot analysis tool against OpenStreetMap building footprints.
 
-The frontend uses [CesiumJS](https://cesium.com/platform/cesiumjs/) with a **top-down orthographic 3D scene** (`SceneMode.SCENE3D`) and OpenStreetMap tiles. The backend is a Bun server with PostGIS/PostgreSQL.
+The frontend uses [CesiumJS](https://cesium.com/platform/cesiumjs/) with a **top-down orthographic 3D scene** (`SceneMode.SCENE3D`) and OpenStreetMap tiles. The backend is Django with PostGIS/PostgreSQL.
 
 ## Camera Workflows
 
@@ -16,17 +16,17 @@ The frontend uses [CesiumJS](https://cesium.com/platform/cesiumjs/) with a **top
 docker compose up --build
 ```
 
-Open http://localhost:3000.
+Open http://localhost:8000.
 
-If port `3000` is already in use:
+If port `8000` is already in use:
 
 ```bash
-APP_PORT=3001 docker compose up --build
+APP_PORT=8001 docker compose up --build
 ```
 
 The compose stack starts:
 
-- Bun app on port `3000`
+- Django app on port `8000`
 - PostGIS/PostgreSQL on port `5432`
 - A persistent `postgis16-data` Docker volume
 
@@ -38,13 +38,13 @@ If running on a remote host like acmvm:
 ssh -L <local_port>:localhost:<remote_APP_PORT> acmvm
 ```
 
-Example (remote on port 3001, forward to local port 3002):
+Example (remote on port 8001, forward to local port 8002):
 
 ```bash
-ssh -L 3002:localhost:3001 acmvm
+ssh -L 8002:localhost:8001 acmvm
 ```
 
-Then open http://localhost:3002.
+Then open http://localhost:8002.
 
 See [docs/acmvm-deployment.md](docs/acmvm-deployment.md) for the full commit, pull, Docker rebuild, and port-forward procedure.
 
@@ -52,28 +52,21 @@ See [docs/acmvm-deployment.md](docs/acmvm-deployment.md) for the full commit, pu
 
 ### Frontend (CesiumJS top-down map)
 
-- `src/frontend/App.tsx` — React app shell with sidebar controls and CesiumJS `Viewer` in `SCENE3D` mode with an orthographic top-down camera.
-- `src/frontend/mapLayers.ts` — CesiumJS-compatible layer styles and GeoJSON helpers.
-- `src/frontend/styles.css` — Sidebar layout and map container styles.
+- `blindspot/static/blindspot/app.js` — Vanilla JS app shell with sidebar controls and CesiumJS `Viewer` in `SCENE3D` mode with an orthographic top-down camera.
+- `blindspot/static/blindspot/styles.css` — Sidebar layout and map container styles.
 
-CesiumJS static assets (workers, widgets CSS, images) are served from `node_modules/cesium/Build/Cesium/` at the `/cesium/` route. `window.CESIUM_BASE_URL` is set to `/cesium/` before Viewer initialization.
+CesiumJS static assets (workers, widgets CSS, images) are fetched via `scripts/fetch-cesium.sh` into `blindspot/static/vendor/cesium/` and served by Django's static file system at the `/static/vendor/cesium/` route. `window.CESIUM_BASE_URL` is set to `/static/vendor/cesium/` before Viewer initialization.
 
-### Backend (Bun + PostGIS)
+### Backend (Django + PostGIS)
 
-- `index.ts` — Server entry point with API and static asset routes.
-- `src/server/api.ts` — Request routing for regions, scenarios, buildings, analysis.
-- `src/server/analysis.ts` — Blindspot detection algorithm (wall segments, ground grid, camera FOV).
-- `src/server/repository.ts` — PostGIS queries for regions, scenarios, cameras, analysis runs.
-- `src/server/osm.ts` — OpenStreetMap Overpass API integration for building footprints.
-- `src/server/db.ts` — Database connection.
-- `src/server/migrate.ts` — SQL migration runner.
-
-### Shared
-
-- `src/shared/geo.ts` — Projection, bearing, polygon math, raycasting.
-- `src/shared/types.ts` — TypeScript types for API responses.
-- `src/shared/validation.ts` — Input normalization.
-- `src/shared/csv.ts` — CSV camera parser.
+- `blindspot/templates/blindspot/index.html` — Django template with sidebar/map HTML.
+- `blindspot/views.py` — View handlers for regions, scenarios, buildings, analysis.
+- `blindspot/lib/analysis.py` — Blindspot detection algorithm (wall segments, ground grid, camera FOV).
+- `blindspot/lib/repository.py` — PostGIS queries for regions, scenarios, cameras, analysis runs.
+- `blindspot/lib/osm.py` — OpenStreetMap Overpass API integration for building footprints.
+- `blindspot/lib/geo.py` — Projection, bearing, polygon math, raycasting.
+- `blindspot/lib/validation.py` — Input normalization.
+- `blindspot/lib/csv_parser.py` — CSV camera parser.
 
 ## Map Layers
 
@@ -88,7 +81,7 @@ The analysis ignores building interiors as required coverage. Cameras only need 
 
 ## Seed Data
 
-Docker startup runs `bun run seed` before starting the web server. The seed is idempotent.
+Docker startup runs `python manage.py seed` before starting the web server. The seed is idempotent.
 
 Seeded regions:
 
@@ -123,12 +116,11 @@ Bearings are degrees clockwise from true north.
 ## Development
 
 ```bash
-bun install
-bun run dev        # Start with HMR at localhost:3000
-bun run migrate    # Run pending SQL migrations
-bun run seed       # Seed database with sample data
-bun test           # Run tests
-bun run build      # Server-side bundle
+pip install -r requirements.txt   # or uv sync
+python manage.py migrate          # Run database migrations
+python manage.py seed             # Seed database with sample data
+bash scripts/fetch-cesium.sh      # Download CesiumJS static assets
+python manage.py runserver        # Start at localhost:8000
 ```
 
 Set `DATABASE_URL` if running the app outside Docker:
@@ -139,13 +131,10 @@ DATABASE_URL=postgres://cam_blindspot:cam_blindspot@localhost:5432/cam_blindspot
 
 ## Tests
 
-Tests are in `src/` alongside their modules:
+Tests are in Python alongside their modules:
 
 | Test file | What it covers |
 |-----------|---------------|
-| `src/shared/geo.test.ts` | Projection, bearing, polygon normals |
-| `src/shared/csv.test.ts` | CSV camera parsing |
-| `src/frontend/mapLayers.test.ts` | Region polygon, CesiumJS color styles |
-| `src/server/analysis.test.ts` | Wall normals, blindspot detection |
-| `src/server/osm.test.ts` | Overpass fetching |
-| `src/server/synthetic-cli.test.ts` | Synthetic rectangle scenario |
+| Tests TBD — porting from bun test to pytest or Django test runner |
+
+The original TypeScript test suite covered projection, CSV parsing, analysis, OSM fetching, and synthetic scenarios. These are being ported to Python.

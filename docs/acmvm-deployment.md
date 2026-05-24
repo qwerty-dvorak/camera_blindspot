@@ -23,10 +23,10 @@ docker compose up --build -d
 docker compose ps
 ```
 
-If port `3000` is already in use on the VM, choose another host port:
+If port `8000` is already in use on the VM, choose another host port:
 
 ```bash
-APP_PORT=3001 docker compose up --build -d
+APP_PORT=8001 docker compose up --build -d
 ```
 
 ## View From Localhost
@@ -34,18 +34,18 @@ APP_PORT=3001 docker compose up --build -d
 Keep this SSH session open from your local machine:
 
 ```bash
-ssh -L 3002:localhost:3000 acmvm
+ssh -L 8002:localhost:8000 acmvm
 ```
 
-Then open http://localhost:3002.
+Then open http://localhost:8002.
 
-If the VM app is running with `APP_PORT=3001`, forward that remote port instead:
+If the VM app is running with `APP_PORT=8001`, forward that remote port instead:
 
 ```bash
-ssh -L 3002:localhost:3001 acmvm
+ssh -L 8002:localhost:8001 acmvm
 ```
 
-Then open http://localhost:3002.
+Then open http://localhost:8002.
 
 ## Useful Operations
 

@@ -3,11 +3,12 @@ services:
     build: .
     environment:
       DATABASE_URL: postgres://cam_blindspot:cam_blindspot@localhost:5432/cam_blindspot
-      PORT: "3000"
-      NODE_ENV: development
+      PORT: "8000"
+      DJANGO_SETTINGS_MODULE: cam_blindspot.settings
+      DEBUG: "true"
       RUN_MIGRATIONS_ON_START: "false"
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-8000}:8000"
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgis16-data:/var/lib/postgresql/16/main
