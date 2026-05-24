@@ -1,12 +1,14 @@
 # cam_blindspot
 
-Dockerized Bun app for CCTV coverage and blindspot analysis against OpenStreetMap building footprints.
+CCTV coverage and blindspot analysis tool against OpenStreetMap building footprints.
 
-The app has three camera workflows:
+The frontend uses [CesiumJS](https://cesium.com/platform/cesiumjs/) in **2D mode** (`SceneMode.SCENE2D`) with OpenStreetMap tiles. The backend is a Bun server with PostGIS/PostgreSQL.
+
+## Camera Workflows
 
 - Saved camera scenarios stored in PostGIS.
 - CSV upload scenarios stored in PostGIS.
-- Optimized placement scenarios generated from only region bounds, camera FOV, camera range, and a max camera count.
+- Optimized placement scenarios generated from region bounds, camera FOV, range, and max camera count.
 
 ## Run locally with Docker
 
@@ -28,13 +30,59 @@ The compose stack starts:
 - PostGIS/PostgreSQL on port `5432`
 - A persistent `postgis16-data` Docker volume
 
-## Workflows
+## SSH tunnel (acmvm)
 
-- Create a region from north, south, east, and west coordinates.
-- Import building footprints from OpenStreetMap Overpass into PostGIS.
-- Analyze a saved camera scenario.
-- Upload camera CSV and persist it as a scenario.
-- Optimize camera placement from only FOV, range, max cameras, and region bounds.
+If running on a remote host like acmvm:
+
+```bash
+ssh -L <local_port>:localhost:<remote_APP_PORT> acmvm
+```
+
+Example (remote on port 3001, forward to local port 3002):
+
+```bash
+ssh -L 3002:localhost:3001 acmvm
+```
+
+Then open http://localhost:3002.
+
+## Architecture
+
+### Frontend (CesiumJS 2D)
+
+- `src/frontend/App.tsx` — React app shell with sidebar controls and CesiumJS `Viewer` in `SCENE2D` mode.
+- `src/frontend/mapLayers.ts` — CesiumJS-compatible layer styles and GeoJSON helpers.
+- `src/frontend/styles.css` — Sidebar layout and map container styles.
+
+CesiumJS static assets (workers, widgets CSS, images) are served from `node_modules/cesium/Build/Cesium/` at the `/cesium/` route. `window.CESIUM_BASE_URL` is set to `/cesium/` before Viewer initialization.
+
+### Backend (Bun + PostGIS)
+
+- `index.ts` — Server entry point with API and static asset routes.
+- `src/server/api.ts` — Request routing for regions, scenarios, buildings, analysis.
+- `src/server/analysis.ts` — Blindspot detection algorithm (wall segments, ground grid, camera FOV).
+- `src/server/repository.ts` — PostGIS queries for regions, scenarios, cameras, analysis runs.
+- `src/server/osm.ts` — OpenStreetMap Overpass API integration for building footprints.
+- `src/server/db.ts` — Database connection.
+- `src/server/migrate.ts` — SQL migration runner.
+
+### Shared
+
+- `src/shared/geo.ts` — Projection, bearing, polygon math, raycasting.
+- `src/shared/types.ts` — TypeScript types for API responses.
+- `src/shared/validation.ts` — Input normalization.
+- `src/shared/csv.ts` — CSV camera parser.
+
+## Map Layers
+
+- Buildings are brown filled polygons with darker brown outlines.
+- Camera FOV/range is shown as translucent blue wedge polygons.
+- Cameras are yellow circular markers with a black orientation pointer on canvas billboards.
+- Wall blindspots are thick dark red line segments on building exteriors.
+- Outdoor ground blindspots are translucent red square cells.
+- Wall normals are thin teal line segments pointing outward from exterior walls.
+
+The analysis ignores building interiors as required coverage. Cameras only need to cover outdoor ground and outward-facing exterior wall segments; they do not need to see inside buildings.
 
 ## Seed Data
 
@@ -53,7 +101,7 @@ For each region, the seed script:
 - Stores returned OSM `way` and `relation` building footprints in PostGIS.
 - Creates a larger sample camera scenario named `Seeded cameras`.
 
-The seed does not create synthetic hardcoded building rectangles. If Overpass has no building footprints for a region or is unavailable, the region and cameras are still seeded, and buildings can be imported later from the UI.
+If Overpass has no building footprints for a region or is unavailable, the region and cameras are still seeded, and buildings can be imported later from the UI.
 
 ## Sample CSV
 
@@ -70,33 +118,32 @@ CP-CAM-05,28.63325,77.22135,230,75,260
 
 Bearings are degrees clockwise from true north.
 
-## Map Layers
-
-- Buildings are brown filled polygons with darker brown outlines.
-- Camera FOV/range is shown as translucent blue wedge polygons.
-- Cameras are yellow circular markers with a black orientation pointer.
-- Wall blindspots are thick dark red line segments on building exteriors.
-- Outdoor ground blindspots are translucent red square cells.
-- Wall normals are thin teal line segments pointing outward from exterior walls.
-
-The analysis ignores building interiors as required coverage. Cameras only need to cover outdoor ground and outward-facing exterior wall segments; they do not need to see inside buildings.
-
-## Bun commands
+## Development
 
 ```bash
 bun install
-bun run dev
-bun run migrate
-bun run seed
-bun run scenario:rectangle
-bun test
-bun run build
+bun run dev        # Start with HMR at localhost:3000
+bun run migrate    # Run pending SQL migrations
+bun run seed       # Seed database with sample data
+bun test           # Run tests
+bun run build      # Server-side bundle
 ```
-
-`bun run scenario:rectangle` runs a CLI-only synthetic square-region/rectangle-building example and prints wall/ground blindspot counts. The same geometry is covered by `bun test`.
 
 Set `DATABASE_URL` if running the app outside Docker:
 
 ```bash
 DATABASE_URL=postgres://cam_blindspot:cam_blindspot@localhost:5432/cam_blindspot
 ```
+
+## Tests
+
+Tests are in `src/` alongside their modules:
+
+| Test file | What it covers |
+|-----------|---------------|
+| `src/shared/geo.test.ts` | Projection, bearing, polygon normals |
+| `src/shared/csv.test.ts` | CSV camera parsing |
+| `src/frontend/mapLayers.test.ts` | Region polygon, CesiumJS color styles |
+| `src/server/analysis.test.ts` | Wall normals, blindspot detection |
+| `src/server/osm.test.ts` | Overpass fetching |
+| `src/server/synthetic-cli.test.ts` | Synthetic rectangle scenario |
