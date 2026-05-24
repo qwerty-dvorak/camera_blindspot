@@ -2,7 +2,7 @@
 
 CCTV coverage and blindspot analysis tool against OpenStreetMap building footprints.
 
-The frontend uses [CesiumJS](https://cesium.com/platform/cesiumjs/) in **2D mode** (`SceneMode.SCENE2D`) with OpenStreetMap tiles. The backend is a Bun server with PostGIS/PostgreSQL.
+The frontend uses [CesiumJS](https://cesium.com/platform/cesiumjs/) with a **top-down orthographic 3D scene** (`SceneMode.SCENE3D`) and OpenStreetMap tiles. The backend is a Bun server with PostGIS/PostgreSQL.
 
 ## Camera Workflows
 
@@ -50,9 +50,9 @@ See [docs/acmvm-deployment.md](docs/acmvm-deployment.md) for the full commit, pu
 
 ## Architecture
 
-### Frontend (CesiumJS 2D)
+### Frontend (CesiumJS top-down map)
 
-- `src/frontend/App.tsx` — React app shell with sidebar controls and CesiumJS `Viewer` in `SCENE2D` mode.
+- `src/frontend/App.tsx` — React app shell with sidebar controls and CesiumJS `Viewer` in `SCENE3D` mode with an orthographic top-down camera.
 - `src/frontend/mapLayers.ts` — CesiumJS-compatible layer styles and GeoJSON helpers.
 - `src/frontend/styles.css` — Sidebar layout and map container styles.
 

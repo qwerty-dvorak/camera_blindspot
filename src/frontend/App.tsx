@@ -14,6 +14,8 @@ import { createOpenStreetMapBaseLayer, mapLayerStyles } from "./mapLayers";
 
 type Workflow = "saved" | "csv" | "optimize";
 
+type RegionBounds = Pick<Region, "north" | "south" | "east" | "west">;
+
 const defaultBounds = {
   north: 28.6165,
   south: 28.6128,
@@ -43,8 +45,8 @@ function App() {
   useEffect(() => {
     window.CESIUM_BASE_URL = "/cesium/";
     const viewer = new Cesium.Viewer(containerRef.current!, {
-      sceneMode: Cesium.SceneMode.SCENE2D,
-      mapMode2D: Cesium.MapMode2D.INFINITE_SCROLL,
+      sceneMode: Cesium.SceneMode.SCENE3D,
+      scene3DOnly: true,
       animation: false,
       timeline: false,
       fullscreenButton: false,
@@ -225,18 +227,12 @@ function App() {
       });
     }
 
-    viewer.camera.setView({
-      destination: Cesium.Rectangle.fromDegrees(
-        result.region.west, result.region.south,
-        result.region.east, result.region.north,
-      ),
-    });
+    setTopDownRegionView(viewer, result.region);
   }
 
   function fitRegion(region: Region) {
-    viewerRef.current?.camera.setView({
-      destination: Cesium.Rectangle.fromDegrees(region.west, region.south, region.east, region.north),
-    });
+    const viewer = viewerRef.current;
+    if (viewer) setTopDownRegionView(viewer, region);
   }
 
   function applyRegionDefaults(region: Region) {
@@ -417,6 +413,41 @@ function configureMapControls(viewer: Cesium.Viewer) {
   controller.inertiaSpin = 0;
   controller.inertiaTranslate = 0;
   controller.inertiaZoom = 0;
+}
+
+function setTopDownRegionView(viewer: Cesium.Viewer, bounds: RegionBounds) {
+  const centerLon = (bounds.east + bounds.west) / 2;
+  const centerLat = (bounds.north + bounds.south) / 2;
+  const { widthMeters, heightMeters } = regionSizeMeters(bounds);
+  const largestSideMeters = Math.max(widthMeters, heightMeters, 1000);
+  const canvasAspect = Math.max(viewer.canvas.clientWidth, 1) / Math.max(viewer.canvas.clientHeight, 1);
+  const frustumWidthMeters = Math.max(widthMeters, heightMeters * canvasAspect, 1000) * 1.2;
+
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(centerLon, centerLat, largestSideMeters * 2),
+    orientation: {
+      heading: 0,
+      pitch: -Cesium.Math.PI_OVER_TWO,
+      roll: 0,
+    },
+  });
+  viewer.camera.switchToOrthographicFrustum();
+
+  const frustum = viewer.camera.frustum;
+  if ("width" in frustum) {
+    frustum.width = frustumWidthMeters;
+  }
+}
+
+function regionSizeMeters(bounds: RegionBounds) {
+  const centerLatRadians = Cesium.Math.toRadians((bounds.north + bounds.south) / 2);
+  const metersPerDegreeLat = 111_320;
+  const metersPerDegreeLon = metersPerDegreeLat * Math.max(Math.cos(centerLatRadians), 0.01);
+
+  return {
+    widthMeters: Math.abs(bounds.east - bounds.west) * metersPerDegreeLon,
+    heightMeters: Math.abs(bounds.north - bounds.south) * metersPerDegreeLat,
+  };
 }
 
 function createCameraIcon(orientationDeg: number): HTMLCanvasElement {
