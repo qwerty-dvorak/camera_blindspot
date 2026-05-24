@@ -2,6 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as Cesium from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
+
+declare global {
+  interface Window {
+    CESIUM_BASE_URL?: string;
+  }
+}
 import "./styles.css";
 import type { AnalysisLayerResponse, CameraScenario, Region } from "../shared/types";
 import { mapLayerStyles, regionFeature } from "./mapLayers";
@@ -35,6 +41,7 @@ function App() {
   const selectedRegion = useMemo(() => regions.find((region) => region.id === regionId) ?? null, [regions, regionId]);
 
   useEffect(() => {
+    window.CESIUM_BASE_URL = "/cesium/";
     const viewer = new Cesium.Viewer(containerRef.current!, {
       sceneMode: Cesium.SceneMode.SCENE2D,
       animation: false,
