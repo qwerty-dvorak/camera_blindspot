@@ -20,10 +20,11 @@ from .lib.repository import (
     upsert_buildings,
 )
 from .lib.validation import normalize_bounds, normalize_camera_input, number_in_range, positive_number
+from django.conf import settings
 
 
 def index(request: HttpRequest):
-    return render(request, "blindspot/index.html")
+    return render(request, "blindspot/index.html", {"tile_server_url": settings.TILE_SERVER_URL})
 
 
 def health(request: HttpRequest):

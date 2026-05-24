@@ -7,11 +7,24 @@ services:
       DJANGO_SETTINGS_MODULE: cam_blindspot.settings
       DEBUG: "true"
       RUN_MIGRATIONS_ON_START: "false"
+      TILE_SERVER_URL: "${TILE_SERVER_URL:-https://tile.openstreetmap.org/{z}/{x}/{y}.png}"
     ports:
       - "${APP_PORT:-8000}:8000"
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgis16-data:/var/lib/postgresql/16/main
 
+  tileserver:
+    image: overv/openstreetmap-tile-server
+    profiles: ["tileserver"]
+    ports:
+      - "${TILESERVER_PORT:-8080}:80"
+    volumes:
+      - osm-tile-data:/data/database
+      - ./pbf_files/northern-zone-260523.osm.pbf:/data/region.osm.pbf:ro
+    command: run
+    restart: unless-stopped
+
 volumes:
   postgis16-data:
+  osm-tile-data:

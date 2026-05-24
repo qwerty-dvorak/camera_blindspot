@@ -129,3 +129,8 @@ STATICFILES_DIRS = [
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+TILE_SERVER_URL = os.environ.get(
+    "TILE_SERVER_URL",
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+)

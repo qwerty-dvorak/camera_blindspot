@@ -79,6 +79,42 @@ CesiumJS static assets (workers, widgets CSS, images) are fetched via `scripts/f
 
 The analysis ignores building interiors as required coverage. Cameras only need to cover outdoor ground and outward-facing exterior wall segments; they do not need to see inside buildings.
 
+## Tile Server
+
+The map uses a tile server for base imagery. The URL is configured via the `TILE_SERVER_URL` environment variable.
+
+### Option A: External tile server
+
+Set `TILE_SERVER_URL` to any standard XYZ tile server URL with `{z}/{x}/{y}` placeholders:
+
+```
+TILE_SERVER_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
+```
+
+This is the default and works out of the box.
+
+### Option B: Self-hosted Docker tile server
+
+The docker-compose includes a `tileserver` service (profile `tileserver`) using [`overv/openstreetmap-tile-server`](https://github.com/Overv/openstreetmap-tile-server) with a local `.osm.pbf` file from `pbf_files/`.
+
+First import your PBF data (one-time):
+
+```bash
+docker compose run --rm tileserver import
+```
+
+Then start with the tile server:
+
+```bash
+docker compose --profile tileserver up -d
+```
+
+The tile server runs on port `8080` (configurable via `TILESERVER_PORT`). Set the app's `TILE_SERVER_URL` accordingly:
+
+```
+TILE_SERVER_URL=http://localhost:8080/tile/{z}/{x}/{y}.png
+```
+
 ## Seed Data
 
 Docker startup runs `python manage.py seed` before starting the web server. The seed is idempotent.

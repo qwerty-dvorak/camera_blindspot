@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'blindspot/styles.css' %}" />
     <script>
       window.CESIUM_BASE_URL = "{% static 'vendor/cesium/' %}";
+      window.TILE_SERVER_URL = "{{ tile_server_url|escapejs }}";
     </script>
     <script src="{% static 'vendor/cesium/Cesium.js' %}"></script>
     <script defer src="{% static 'blindspot/app.js' %}"></script>

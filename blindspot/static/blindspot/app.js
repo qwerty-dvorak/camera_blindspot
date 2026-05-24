@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     baseLayerPicker: false,
     infoBox: false,
     selectionIndicator: false,
-    baseLayer: new Cesium.ImageryLayer(new Cesium.OpenStreetMapImageryProvider({ url: "https://tile.openstreetmap.org/" })),
+    baseLayer: new Cesium.ImageryLayer(new Cesium.UrlTemplateImageryProvider({ url: window.TILE_SERVER_URL })),
   });
   configureMapControls(viewer);
   initializeForm();
