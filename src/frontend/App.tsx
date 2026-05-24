@@ -55,6 +55,7 @@ function App() {
       selectionIndicator: false,
       baseLayer: createOpenStreetMapBaseLayer(),
     });
+    configureMapControls(viewer);
     viewerRef.current = viewer;
     void loadRegions();
     return () => {
@@ -406,6 +407,15 @@ function App() {
       <section id="cesiumContainer" ref={containerRef} aria-label="Blindspot map" />
     </main>
   );
+}
+
+function configureMapControls(viewer: Cesium.Viewer) {
+  const controller = viewer.scene.screenSpaceCameraController;
+  controller.enableLook = false;
+  controller.enableTilt = false;
+  controller.inertiaSpin = 0;
+  controller.inertiaTranslate = 0;
+  controller.inertiaZoom = 0;
 }
 
 function createCameraIcon(orientationDeg: number): HTMLCanvasElement {
