@@ -46,6 +46,8 @@ ssh -L 3002:localhost:3001 acmvm
 
 Then open http://localhost:3002.
 
+See [docs/acmvm-deployment.md](docs/acmvm-deployment.md) for the full commit, pull, Docker rebuild, and port-forward procedure.
+
 ## Architecture
 
 ### Frontend (CesiumJS 2D)

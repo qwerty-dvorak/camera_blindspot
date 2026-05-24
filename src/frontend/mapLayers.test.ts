@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mapLayerStyles, regionFeature } from "./mapLayers";
+import * as Cesium from "cesium";
+import { createOpenStreetMapBaseLayer, mapLayerStyles, regionFeature } from "./mapLayers";
 import type { Region } from "../shared/types";
 
 describe("map UI layers", () => {
@@ -27,5 +28,12 @@ describe("map UI layers", () => {
   test("marks buildings as brown filled footprints", () => {
     expect(mapLayerStyles.building.stroke.toCssColorString()).toBe("rgb(93,64,55)");
     expect(mapLayerStyles.building.fill.toCssColorString()).toBe("rgba(141,110,99,0.45)");
+  });
+
+  test("creates an explicit OpenStreetMap base layer for Cesium Viewer", () => {
+    const layer = createOpenStreetMapBaseLayer();
+    expect(layer).toBeInstanceOf(Cesium.ImageryLayer);
+    expect(layer.imageryProvider).toBeInstanceOf(Cesium.OpenStreetMapImageryProvider);
+    expect(layer.imageryProvider.url).toBe("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
   });
 });

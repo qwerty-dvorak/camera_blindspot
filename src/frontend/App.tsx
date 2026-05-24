@@ -10,7 +10,7 @@ declare global {
 }
 import "./styles.css";
 import type { AnalysisLayerResponse, CameraScenario, Region } from "../shared/types";
-import { mapLayerStyles, regionFeature } from "./mapLayers";
+import { createOpenStreetMapBaseLayer, mapLayerStyles } from "./mapLayers";
 
 type Workflow = "saved" | "csv" | "optimize";
 
@@ -53,10 +53,8 @@ function App() {
       baseLayerPicker: false,
       infoBox: false,
       selectionIndicator: false,
-      imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-        url: "https://tile.openstreetmap.org/",
-      }),
-    } as Cesium.Viewer.ConstructorOptions & { imageryProvider: Cesium.ImageryProvider });
+      baseLayer: createOpenStreetMapBaseLayer(),
+    });
     viewerRef.current = viewer;
     void loadRegions();
     return () => {

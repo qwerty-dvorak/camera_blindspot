@@ -32,6 +32,14 @@ export const mapLayerStyles = {
   },
 } as const;
 
+export function createOpenStreetMapBaseLayer(): Cesium.ImageryLayer {
+  return new Cesium.ImageryLayer(
+    new Cesium.OpenStreetMapImageryProvider({
+      url: "https://tile.openstreetmap.org/",
+    }),
+  );
+}
+
 export function regionFeature(region: Region): GeoJSON.Feature {
   return {
     type: "Feature",
