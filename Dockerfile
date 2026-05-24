@@ -18,7 +18,8 @@ RUN apt-get update \
   && npm cache clean --force \
   && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /var/lib/postgresql/16/main && \
+RUN pg_dropcluster 16 main --stop 2>/dev/null; \
+    mkdir -p /var/lib/postgresql/16/main && \
     chown -R postgres:postgres /var/lib/postgresql
 
 WORKDIR /app
@@ -34,18 +35,21 @@ set -e
 
 if [ ! -f /var/lib/postgresql/16/main/PG_VERSION ]; then
   pg_createcluster 16 main
-  pg_ctlcluster 16 main start
-  for i in $(seq 1 30); do
-    if su - postgres -c "pg_isready -q" 2>/dev/null; then break; fi
-    sleep 1
-  done
-  su - postgres -c "psql -c \"CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';\""
-  su - postgres -c "psql -c \"CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};\""
-  su - postgres -c "psql -d ${POSTGRES_DB} -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
-  pg_ctlcluster 16 main stop
 fi
 
 pg_ctlcluster 16 main start
+for i in $(seq 1 30); do
+  if su - postgres -c "pg_isready -q" 2>/dev/null; then break; fi
+  sleep 1
+done
+
+su - postgres -c "psql -tc \"SELECT 1 FROM pg_roles WHERE rolname='${POSTGRES_USER}'\" | grep -q 1" 2>/dev/null ||
+  su - postgres -c "psql -c \"CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';\""
+su - postgres -c "psql -tc \"SELECT 1 FROM pg_database WHERE datname='${POSTGRES_DB}'\" | grep -q 1" 2>/dev/null ||
+  su - postgres -c "psql -c \"CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};\""
+su - postgres -c "psql -d ${POSTGRES_DB} -tc \"SELECT 1 FROM pg_extension WHERE extname='postgis'\" | grep -q 1" 2>/dev/null ||
+  su - postgres -c "psql -d ${POSTGRES_DB} -c \"CREATE EXTENSION postgis;\""
+
 exec "$@"
 SCRIPT
 
