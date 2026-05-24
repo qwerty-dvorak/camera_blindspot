@@ -33,7 +33,8 @@ RUN cat > /usr/local/bin/docker-entrypoint.sh <<'SCRIPT'
 #!/bin/bash
 set -e
 
-if [ ! -f /var/lib/postgresql/16/main/PG_VERSION ]; then
+if [ ! -f /var/lib/postgresql/16/main/PG_VERSION ] || ! pg_ctlcluster 16 main status 2>/dev/null; then
+  pg_dropcluster 16 main 2>/dev/null || true
   pg_createcluster 16 main
 fi
 
