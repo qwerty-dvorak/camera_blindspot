@@ -21,7 +21,7 @@ services:
       - "${TILESERVER_PORT:-8080}:80"
     volumes:
       - osm-tile-data:/data/database
-      - ./pbf_files/northern-zone-260523.osm.pbf:/data/region.osm.pbf:ro
+      - ./pbf_files/delhi.osm.pbf:/data/region.osm.pbf:ro
     command: run
     restart: unless-stopped
 

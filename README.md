@@ -93,27 +93,38 @@ TILE_SERVER_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 
 This is the default and works out of the box.
 
-### Option B: Self-hosted Docker tile server
+### Option B: Self-hosted Docker tile server (Delhi test area)
 
 The docker-compose includes a `tileserver` service (profile `tileserver`) using [`overv/openstreetmap-tile-server`](https://github.com/Overv/openstreetmap-tile-server) with a local `.osm.pbf` file from `pbf_files/`.
 
-First import your PBF data (one-time):
+#### 1. Extract a small Delhi PBF
+
+The app's seed data includes a **Connaught Place** region (`blindspot/management/commands/seed.py`):
+```
+north=28.6342, south=28.6287, east=77.2224, west=77.216
+```
+
+Extract an extended bounding box (~15 km around Connaught Place) from a larger regional PBF:
+
+```bash
+bash scripts/extract-delhi-pbf.sh [path/to/large-region.osm.pbf]
+```
+
+The script runs `osmium extract` inside a Docker container and outputs `pbf_files/delhi.osm.pbf` (~10-20 MB vs. ~211 MB for northern India).
+
+#### 2. Import the PBF (one-time)
 
 ```bash
 docker compose run --rm tileserver import
 ```
 
-Then start with the tile server:
+#### 3. Start with tile server
 
 ```bash
-docker compose --profile tileserver up -d
+TILE_SERVER_URL="http://localhost:8080/tile/{z}/{x}/{y}.png" docker compose --profile tileserver up -d
 ```
 
-The tile server runs on port `8080` (configurable via `TILESERVER_PORT`). Set the app's `TILE_SERVER_URL` accordingly:
-
-```
-TILE_SERVER_URL=http://localhost:8080/tile/{z}/{x}/{y}.png
-```
+The tile server runs on port `8080` (configurable via `TILESERVER_PORT`).
 
 ## Seed Data
 
