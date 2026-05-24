@@ -33,12 +33,45 @@ RUN cat > /usr/local/bin/docker-entrypoint.sh <<'SCRIPT'
 #!/bin/bash
 set -e
 
-if [ ! -f /var/lib/postgresql/16/main/PG_VERSION ] || ! pg_ctlcluster 16 main status 2>/dev/null; then
-  pg_dropcluster 16 main 2>/dev/null || true
-  pg_createcluster 16 main
+PGDATA=/var/lib/postgresql/16/main
+PGBIN=/usr/lib/postgresql/16/bin
+
+mkdir -p "$PGDATA" /var/run/postgresql
+chown -R postgres:postgres /var/lib/postgresql /var/run/postgresql
+
+if [ ! -f "$PGDATA/PG_VERSION" ]; then
+  su - postgres -c "$PGBIN/initdb -D '$PGDATA'"
 fi
 
-pg_ctlcluster 16 main start
+if [ ! -f "$PGDATA/postgresql.conf" ]; then
+  cat > "$PGDATA/postgresql.conf" <<EOF
+data_directory = '$PGDATA'
+hba_file = '$PGDATA/pg_hba.conf'
+ident_file = '$PGDATA/pg_ident.conf'
+listen_addresses = 'localhost'
+port = 5432
+unix_socket_directories = '/var/run/postgresql'
+max_connections = 100
+shared_buffers = 128MB
+dynamic_shared_memory_type = posix
+EOF
+  chown postgres:postgres "$PGDATA/postgresql.conf"
+fi
+
+if [ ! -f "$PGDATA/pg_hba.conf" ]; then
+  cat > "$PGDATA/pg_hba.conf" <<EOF
+local   all             postgres                                peer
+local   all             all                                     peer
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             ::1/128                 scram-sha-256
+EOF
+  chown postgres:postgres "$PGDATA/pg_hba.conf"
+fi
+
+touch "$PGDATA/pg_ident.conf"
+chown postgres:postgres "$PGDATA/pg_ident.conf"
+
+su - postgres -c "$PGBIN/pg_ctl -D '$PGDATA' -w start"
 for i in $(seq 1 30); do
   if su - postgres -c "pg_isready -q" 2>/dev/null; then break; fi
   sleep 1
