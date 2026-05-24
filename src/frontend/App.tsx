@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import * as Cesium from "cesium";
+import "cesium/Build/Cesium/Widgets/widgets.css";
 import "./styles.css";
 import type { AnalysisLayerResponse, CameraScenario, Region } from "../shared/types";
 import { mapLayerStyles, regionFeature } from "./mapLayers";
@@ -16,8 +16,8 @@ const defaultBounds = {
 };
 
 function App() {
-  const mapRef = useRef<L.Map | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewerRef = useRef<Cesium.Viewer | null>(null);
   const [regions, setRegions] = useState<Region[]>([]);
   const [regionId, setRegionId] = useState<number | null>(null);
   const [scenarios, setScenarios] = useState<CameraScenario[]>([]);
@@ -35,19 +35,26 @@ function App() {
   const selectedRegion = useMemo(() => regions.find((region) => region.id === regionId) ?? null, [regions, regionId]);
 
   useEffect(() => {
-    const map = L.map("map", { zoomControl: true }).setView([defaultBounds.south, defaultBounds.west], 16);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-    const layers = L.layerGroup().addTo(map);
-    mapRef.current = map;
-    layerRef.current = layers;
+    const viewer = new Cesium.Viewer(containerRef.current!, {
+      sceneMode: Cesium.SceneMode.SCENE2D,
+      animation: false,
+      timeline: false,
+      fullscreenButton: false,
+      homeButton: false,
+      navigationHelpButton: false,
+      geocoder: false,
+      baseLayerPicker: false,
+      infoBox: false,
+      selectionIndicator: false,
+      imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+        url: "https://tile.openstreetmap.org/",
+      }),
+    } as Cesium.Viewer.ConstructorOptions & { imageryProvider: Cesium.ImageryProvider });
+    viewerRef.current = viewer;
     void loadRegions();
     return () => {
-      map.remove();
-      mapRef.current = null;
-      layerRef.current = null;
+      viewer.destroy();
+      viewerRef.current = null;
     };
   }, []);
 
@@ -144,54 +151,85 @@ function App() {
   }
 
   function renderAnalysis(result: AnalysisLayerResponse) {
-    const map = mapRef.current;
-    const layers = layerRef.current;
-    if (!map || !layers) return;
-    layers.clearLayers();
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    viewer.dataSources.removeAll();
+    viewer.entities.removeAll();
 
-    const regionLayer = L.geoJSON(regionFeature(result.region), { style: mapLayerStyles.region }).addTo(layers);
-    L.geoJSON(result.buildings, {
-      style: mapLayerStyles.building,
-    }).addTo(layers);
-    L.geoJSON(result.coverage, {
-      style: mapLayerStyles.coverage,
-    }).addTo(layers);
-    L.geoJSON(result.groundBlindspots, {
-      style: mapLayerStyles.groundBlindspot,
-    }).addTo(layers);
-    L.geoJSON(result.wallBlindspots, {
-      style: mapLayerStyles.wallBlindspot,
-    }).addTo(layers);
-    L.geoJSON(result.wallNormals, {
-      style: mapLayerStyles.wallNormal,
-    }).addTo(layers);
-    L.geoJSON(result.cameras, {
-      pointToLayer: (feature, latlng) =>
-        L.marker(latlng, {
-          icon: L.divIcon({
-            className: "camera-marker",
-            html: `<span style="transform: rotate(${feature.properties?.orientation_deg ?? 0}deg)"></span>`,
-            iconSize: [24, 24],
-          }),
-        }),
-      onEachFeature: (feature, layer) => {
-        layer.bindPopup(
-          `<strong>${feature.properties?.camera ?? "Camera"}</strong><br>FOV ${feature.properties?.fov_deg} deg<br>Range ${feature.properties?.range_m} m`,
-        );
+    const regionEntity = viewer.entities.add({
+      polygon: {
+        hierarchy: Cesium.Cartesian3.fromDegreesArray([
+          result.region.west, result.region.south,
+          result.region.east, result.region.south,
+          result.region.east, result.region.north,
+          result.region.west, result.region.north,
+        ]),
+        material: mapLayerStyles.region.material,
+        outline: true,
+        outlineColor: mapLayerStyles.region.outlineColor,
+        outlineWidth: mapLayerStyles.region.outlineWidth,
       },
-    }).addTo(layers);
+    });
 
-    map.fitBounds(regionLayer.getBounds(), { padding: [24, 24] });
+    function addGeoJsonLayer(name: string, geoJson: GeoJSON.FeatureCollection, style: Record<string, unknown>) {
+      if (geoJson.features.length === 0) return;
+      const ds = new Cesium.GeoJsonDataSource(name);
+      ds.load(geoJson, style);
+      viewer!.dataSources.add(ds);
+    }
+
+    addGeoJsonLayer("buildings", result.buildings, {
+      fill: mapLayerStyles.building.fill,
+      stroke: mapLayerStyles.building.stroke,
+      strokeWidth: mapLayerStyles.building.strokeWidth,
+    });
+    addGeoJsonLayer("coverage", result.coverage, {
+      fill: mapLayerStyles.coverage.fill,
+      stroke: mapLayerStyles.coverage.stroke,
+      strokeWidth: mapLayerStyles.coverage.strokeWidth,
+    });
+    addGeoJsonLayer("groundBlindspots", result.groundBlindspots, {
+      fill: mapLayerStyles.groundBlindspot.fill,
+      stroke: mapLayerStyles.groundBlindspot.stroke,
+      strokeWidth: mapLayerStyles.groundBlindspot.strokeWidth,
+    });
+    addGeoJsonLayer("wallBlindspots", result.wallBlindspots, {
+      stroke: mapLayerStyles.wallBlindspot.stroke,
+      strokeWidth: mapLayerStyles.wallBlindspot.strokeWidth,
+    });
+    addGeoJsonLayer("wallNormals", result.wallNormals, {
+      stroke: mapLayerStyles.wallNormal.stroke,
+      strokeWidth: mapLayerStyles.wallNormal.strokeWidth,
+    });
+
+    for (const feature of result.cameras.features) {
+      const coords = feature.geometry as GeoJSON.Point;
+      const props = feature.properties ?? {};
+      const [lon, lat] = coords.coordinates as [number, number];
+      const icon = createCameraIcon(Number(props.orientation_deg ?? 0));
+      viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(lon, lat),
+        billboard: {
+          image: icon,
+          verticalOrigin: Cesium.VerticalOrigin.CENTER,
+          horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+        },
+        description: `<strong>${props.camera ?? "Camera"}</strong><br>FOV ${props.fov_deg} deg<br>Range ${props.range_m} m`,
+      });
+    }
+
+    viewer.camera.setView({
+      destination: Cesium.Rectangle.fromDegrees(
+        result.region.west, result.region.south,
+        result.region.east, result.region.north,
+      ),
+    });
   }
 
   function fitRegion(region: Region) {
-    mapRef.current?.fitBounds(
-      [
-        [region.south, region.west],
-        [region.north, region.east],
-      ],
-      { padding: [24, 24] },
-    );
+    viewerRef.current?.camera.setView({
+      destination: Cesium.Rectangle.fromDegrees(region.west, region.south, region.east, region.north),
+    });
   }
 
   function applyRegionDefaults(region: Region) {
@@ -360,9 +398,43 @@ function App() {
           <div><span className="swatch normal" />Wall normals</div>
         </section>
       </aside>
-      <section id="map" aria-label="Blindspot map" />
+      <section id="cesiumContainer" ref={containerRef} aria-label="Blindspot map" />
     </main>
   );
+}
+
+function createCameraIcon(orientationDeg: number): HTMLCanvasElement {
+  const size = 28;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  ctx.clearRect(0, 0, size, size);
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffc107";
+  ctx.fill();
+  ctx.strokeStyle = "#102027";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(((orientationDeg + 180) * Math.PI) / 180);
+  ctx.beginPath();
+  ctx.moveTo(0, -14);
+  ctx.lineTo(-5, -5);
+  ctx.lineTo(5, -5);
+  ctx.closePath();
+  ctx.fillStyle = "#102027";
+  ctx.fill();
+  ctx.restore();
+
+  return canvas;
 }
 
 function NumberInput(props: { label: string; value: number; onChange: (value: number) => void }) {

@@ -1,12 +1,35 @@
+import * as Cesium from "cesium";
 import type { Region } from "../shared/types";
 
 export const mapLayerStyles = {
-  region: { color: "#263238", weight: 2, fillOpacity: 0 },
-  building: { color: "#5d4037", weight: 1, fillColor: "#8d6e63", fillOpacity: 0.45 },
-  coverage: { color: "#1976d2", weight: 1, fillColor: "#42a5f5", fillOpacity: 0.22 },
-  groundBlindspot: { color: "#d32f2f", weight: 0.5, fillColor: "#ef5350", fillOpacity: 0.35 },
-  wallBlindspot: { color: "#b71c1c", weight: 4, opacity: 0.9 },
-  wallNormal: { color: "#00897b", weight: 1, opacity: 0.65 },
+  region: {
+    material: new Cesium.ColorMaterialProperty(Cesium.Color.fromCssColorString("#263238").withAlpha(0)),
+    outlineColor: Cesium.Color.fromCssColorString("#263238"),
+    outlineWidth: 2,
+  },
+  building: {
+    fill: Cesium.Color.fromCssColorString("#8d6e63").withAlpha(0.45),
+    stroke: Cesium.Color.fromCssColorString("#5d4037"),
+    strokeWidth: 1,
+  },
+  coverage: {
+    fill: Cesium.Color.fromCssColorString("#42a5f5").withAlpha(0.22),
+    stroke: Cesium.Color.fromCssColorString("#1976d2"),
+    strokeWidth: 1,
+  },
+  groundBlindspot: {
+    fill: Cesium.Color.fromCssColorString("#ef5350").withAlpha(0.35),
+    stroke: Cesium.Color.fromCssColorString("#d32f2f"),
+    strokeWidth: 0.5,
+  },
+  wallBlindspot: {
+    stroke: Cesium.Color.fromCssColorString("#b71c1c"),
+    strokeWidth: 4,
+  },
+  wallNormal: {
+    stroke: Cesium.Color.fromCssColorString("#00897b"),
+    strokeWidth: 1,
+  },
 } as const;
 
 export function regionFeature(region: Region): GeoJSON.Feature {

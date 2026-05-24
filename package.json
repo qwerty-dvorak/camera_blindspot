@@ -13,10 +13,9 @@
     "build": "bun build ./index.ts --target=bun --outdir=dist"
   },
   "dependencies": {
-    "@types/leaflet": "^1.9.21",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "leaflet": "^1.9.4",
+    "cesium": "^1.141.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

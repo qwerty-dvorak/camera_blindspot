@@ -18,6 +18,12 @@ const server = Bun.serve({
     if (url.pathname.startsWith("/api/")) {
       return handleApiRequest(req, url);
     }
+    if (url.pathname.startsWith("/cesium/")) {
+      const filePath = url.pathname.replace("/cesium/", "");
+      const file = Bun.file(`node_modules/cesium/Build/Cesium/${filePath}`);
+      if (await file.exists()) return new Response(file);
+      return new Response("Not found", { status: 404 });
+    }
     return new Response("Not found", { status: 404 });
   },
   development: {

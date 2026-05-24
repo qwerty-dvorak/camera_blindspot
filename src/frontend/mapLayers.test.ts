@@ -25,8 +25,7 @@ describe("map UI layers", () => {
   });
 
   test("marks buildings as brown filled footprints", () => {
-    expect(mapLayerStyles.building.color).toBe("#5d4037");
-    expect(mapLayerStyles.building.fillColor).toBe("#8d6e63");
-    expect(mapLayerStyles.building.fillOpacity).toBeGreaterThan(0.3);
+    expect(mapLayerStyles.building.stroke.toCssColorString()).toBe("rgb(93,64,55)");
+    expect(mapLayerStyles.building.fill.toCssColorString()).toBe("rgba(141,110,99,0.45)");
   });
 });
